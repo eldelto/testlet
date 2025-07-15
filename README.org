@@ -19,7 +19,7 @@
    - Re-running tests on file changes
 
 
-   ![Demo GIF](./media/demo.gif?raw=true "Demo GIF")
+   [[https://raw.githubusercontent.com/eldelto/testlet/refs/heads/main/media/demo.gif][Demo GIF]]
 
 *** supported languages
 
