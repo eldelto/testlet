@@ -19,7 +19,7 @@
    - Re-running tests on file changes
 
 
-   [[file:media/demo.gif][Demo GIF]]
+   ![Demo GIF](./media/demo.gif?raw=true "Demo GIF")
 
 *** supported languages
 
