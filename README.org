@@ -17,22 +17,22 @@
    - Running a whole test file
    - Re-running the most recent test execution
    - Re-running tests on file changes
-	 
-   [[!\[Demo GIF\](./media/demo.gif?raw=true "Demo GIF")
-][Demo GIF]]
 
-*** Supported Languages
 
-	Currently this package only supports languages I frequently use at
+   [[file:media/demo.gif][Demo GIF]]
+
+*** supported languages
+
+	currently this package only supports languages i frequently use at
 	home or at work but will hopefully expand in the future.
 
-	- Elixir
-	- Go
+	- elixir
+	- go
    
-** Installation
+** installation
    
-   Testlet is currently not available on MELPA but can be installed
-   directly from source via ~use-package~ (requires Emacs >= 30.0):
+   testlet is currently not available on melpa but can be installed
+   directly from source via ~use-package~ (requires emacs >= 30.0):
 
    #+begin_src elisp
 	 (use-package testlet
@@ -41,7 +41,7 @@
 	 :ensure t)
    #+end_src
 
-   Alternatively you can clone this repository
+   alternatively you can clone this repository
 
    #+begin_src bash
 	 git clone git@github.com:eldelto/testlet
@@ -54,37 +54,37 @@
 	   :load-path "<path-to-repository>")
    #+end_src
 
-** Commands
+** commands
 
-   The following interactive commands are provided:
+   the following interactive commands are provided:
 
-   | Command                       | Description                                            |
+   | command                       | description                                            |
    |-------------------------------+--------------------------------------------------------|
-   | ~testlet-run-test-at-point~   | Executes the current test under the cursor.            |
-   | ~testlet-run-test-file~       | Executes all tests in the current test file.           |
-   | ~testlet-watch-test-at-point~ | Runs the test at point and re-runs it on file changes. |
-   | ~testlet-watch-file~          | Runs the test file and re-runs it on file changes.     |
-   | ~testlet-rerun-test~          | Restarts the most recently executed test run.          |
+   | ~testlet-run-test-at-point~   | executes the current test under the cursor.            |
+   | ~testlet-run-test-file~       | executes all tests in the current test file.           |
+   | ~testlet-watch-test-at-point~ | runs the test at point and re-runs it on file changes. |
+   | ~testlet-watch-file~          | runs the test file and re-runs it on file changes.     |
+   | ~testlet-rerun-test~          | restarts the most recently executed test run.          |
 
-** Configuration
+** configuration
    
-   Testlet calls out to mode-specific Elisp functions to determine the
+   testlet calls out to mode-specific elisp functions to determine the
    desired test cases to run and to build up the shell command to
    execute.
 
-   There are three callback functions you can customize:
+   there are three callback functions you can customize:
 
-   | Function                   | Description                                                       |
+   | function                   | description                                                       |
    |----------------------------+-------------------------------------------------------------------|
-   | ~run-test-at-point-<mode>~ | Returns the shell command to run the test at point.               |
-   | ~run-test-file-<mode>~     | Returns the shell command to run all tests in the current buffer. |
-   | ~watch-test-files-<mode>~  | Returns a list of files to watch for changes.                     |
+   | ~run-test-at-point-<mode>~ | returns the shell command to run the test at point.               |
+   | ~run-test-file-<mode>~     | returns the shell command to run all tests in the current buffer. |
+   | ~watch-test-files-<mode>~  | returns a list of files to watch for changes.                     |
 
-   For more details, checkout the implementations for already
+   for more details, checkout the implementations for already
    supported languages.
 
-** Contributing
+** contributing
 
-   Your favourite language is not supported? Feel free to open create
+   your favourite language is not supported? feel free to open create
    a pull-request with the required changes or open an issue.
    
