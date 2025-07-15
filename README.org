@@ -1,0 +1,90 @@
+* Testlet
+
+  Testlet is a language-agnostic test-runner, aiming to provide a
+  consistent workflow across programming languages and keeping the
+  required configuration to a minimum.
+
+  This package was mostly inspired by the great [[https://github.com/jacktasia/dumb-jump][dumb-jump]] (and
+  [[https://github.com/emacsmirror/dumber-jump][dumber-jump]]) plug-ins that provide basic code navigation for a
+  plethora of programming languages without any configuration - a
+  godsend when working across many projects with varying tech stacks.
+
+  I wanted to create something similar but for running tests.
+
+** Features
+   
+   - Running the test at point
+   - Running a whole test file
+   - Re-running the most recent test execution
+   - Re-running tests on file changes
+	 
+   [[!\[Demo GIF\](./media/demo.gif?raw=true "Demo GIF")
+][Demo GIF]]
+
+*** Supported Languages
+
+	Currently this package only supports languages I frequently use at
+	home or at work but will hopefully expand in the future.
+
+	- Elixir
+	- Go
+   
+** Installation
+   
+   Testlet is currently not available on MELPA but can be installed
+   directly from source via ~use-package~ (requires Emacs >= 30.0):
+
+   #+begin_src elisp
+	 (use-package testlet
+	   :vc (:url "https://github.com/eldelto/testlet"
+	 :branch "main")
+	 :ensure t)
+   #+end_src
+
+   Alternatively you can clone this repository
+
+   #+begin_src bash
+	 git clone git@github.com:eldelto/testlet
+   #+end_src
+   
+   and load it manually in your ~.emacs~ file
+
+   #+begin_src elisp
+	 (use-package testlet
+	   :load-path "<path-to-repository>")
+   #+end_src
+
+** Commands
+
+   The following interactive commands are provided:
+
+   | Command                       | Description                                            |
+   |-------------------------------+--------------------------------------------------------|
+   | ~testlet-run-test-at-point~   | Executes the current test under the cursor.            |
+   | ~testlet-run-test-file~       | Executes all tests in the current test file.           |
+   | ~testlet-watch-test-at-point~ | Runs the test at point and re-runs it on file changes. |
+   | ~testlet-watch-file~          | Runs the test file and re-runs it on file changes.     |
+   | ~testlet-rerun-test~          | Restarts the most recently executed test run.          |
+
+** Configuration
+   
+   Testlet calls out to mode-specific Elisp functions to determine the
+   desired test cases to run and to build up the shell command to
+   execute.
+
+   There are three callback functions you can customize:
+
+   | Function                   | Description                                                       |
+   |----------------------------+-------------------------------------------------------------------|
+   | ~run-test-at-point-<mode>~ | Returns the shell command to run the test at point.               |
+   | ~run-test-file-<mode>~     | Returns the shell command to run all tests in the current buffer. |
+   | ~watch-test-files-<mode>~  | Returns a list of files to watch for changes.                     |
+
+   For more details, checkout the implementations for already
+   supported languages.
+
+** Contributing
+
+   Your favourite language is not supported? Feel free to open create
+   a pull-request with the required changes or open an issue.
+   
