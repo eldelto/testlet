@@ -67,6 +67,8 @@
 
 ;; go-mode
 
+(setq run-test-project-go-mode (lambda () "go test ./..."))
+
 (setq run-test-file-go-mode
 	  (lambda ()
 		(let* ((test-functions (matches-in-buffer "Test[^\\(]+"))
@@ -96,6 +98,8 @@
 
 ;; elixir-mode
 
+(setq run-test-project-elixir-mode (lambda () "mix test"))
+
 (setq run-test-file-elixir-mode
 	  (lambda () (concat "mix test " (buffer-file-name (current-buffer)))))
 
@@ -108,6 +112,7 @@
 
 (setq watch-test-files-elixir-mode (lambda ()
 									 (testlet-list-files ".*\\.\\(ex\\|exs\\)$")))
+
 
 (defun testlet-get-mode-func (prefix)
   (if-let* ((symbol (intern (concat prefix (symbol-name major-mode))))
@@ -167,6 +172,13 @@ stored value as shell command in the project root."
 	  (testlet-register-file-watchers files 'testlet-rerun-test)))
 
 ;;;###autoload
+(defun testlet-run-test-project ()
+  "Tests the current project."
+  (interactive)
+  (testlet-remove-file-watchers)
+  (testlet-run-test "run-test-project-"))
+
+;;;###autoload
 (defun testlet-run-test-file ()
   "Runs the tests in the current file."
   (interactive)
@@ -179,6 +191,12 @@ stored value as shell command in the project root."
   (interactive)
   (testlet-remove-file-watchers)
   (testlet-run-test "run-test-at-point-"))
+
+;;;###autoload
+(defun testlet-watch-test-project ()
+  "Tests the current project on file change."
+  (interactive)
+  (testlet-watch-test "run-test-project-"))
 
 ;;;###autoload
 (defun testlet-watch-test-file ()
