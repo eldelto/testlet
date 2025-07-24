@@ -110,6 +110,8 @@
 				   (concat "mix test " file-name
 						   ":" (number-to-string line-number)))))
 
+;; TODO: Only search in <project>/(lib|test) otherwise there are too
+;; many files returned.
 (setq watch-test-files-elixir-mode (lambda ()
 									 (testlet-list-files ".*\\.\\(ex\\|exs\\)$")))
 
@@ -136,14 +138,10 @@
 			file-watchers))))
 
 (defun testlet-remove-file-watchers ()
-  (if (get-buffer "*testlet*")
+  (when (get-buffer "*testlet*")
 	  (with-current-buffer "*testlet*"
 		(dolist (watcher file-watchers)
-		  (message "%s" watcher)
-		  (file-notify-rm-watch watcher)))
-	(message "no watchers found")))
-
-(testlet-remove-file-watchers)
+		  (file-notify-rm-watch watcher)))))
 
 (defun testlet-run-test (prefix)
   "Resolves the variable <prefix> + <major-mode-name> and runs the
