@@ -106,7 +106,7 @@
 (setq run-test-at-point-elixir-mode
 	  (lambda () (when-let* ((file-name (buffer-file-name (current-buffer)))
 							 (line-number
-							  (nth 1 (match-before-point "test\s\".*\"\sdo"))))
+							  (nth 1 (match-before-point "test\s\".*\".*do$"))))
 				   (concat "mix test " file-name
 						   ":" (number-to-string line-number)))))
 
