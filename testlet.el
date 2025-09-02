@@ -5,7 +5,7 @@
 ;; Author: Dominic Aschauer <eldelto77@gmail.com>
 ;; Maintainer: Dominic Aschauer <eldelto77@gmail.com>
 ;; Created: 2025-07-15
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "29.3") (projectile "2.9.0"))
 ;; URL: https://github.com/eldelto/testlet
 ;; Keywords: convenience, programming, testing
@@ -36,29 +36,34 @@
 (require 'filenotify)
 (require 'projectile)
 
+(defvar testlet--buffer-under-test nil)
+(defvar testlet--last-test-command nil)
+(defvar testlet--watching? nil)
+(defvar testlet--project-root nil)
+
 (defun matches-in-buffer (regexp &optional buffer)
   "Returns a list of matches in the current or given buffer."
   (let ((matches) (case-fold-search nil))
-    (save-match-data
-      (save-excursion
-        (with-current-buffer (or buffer (current-buffer))
-          (save-restriction
-            (widen)
-            (goto-char 1)
-            (while (search-forward-regexp regexp nil t 1)
-              (push (match-string 0) matches)))))
-      matches)))
+	(save-match-data
+	  (save-excursion
+		(with-current-buffer (or buffer (current-buffer))
+		  (save-restriction
+			(widen)
+			(goto-char 1)
+			(while (search-forward-regexp regexp nil t 1)
+			  (push (match-string 0) matches)))))
+	  matches)))
 
 (defun match-before-point (regexp &optional buffer)
   "Returns the first match before point in the current or given buffer."
   ;; TODO: Should also search on the current line
   (let ((case-fold-search nil))
-    (save-match-data
-      (save-excursion
-        (with-current-buffer (or buffer (current-buffer))
-          (save-restriction
-            (widen)
-            (if (search-backward-regexp regexp nil t 1)
+	(save-match-data
+	  (save-excursion
+		(with-current-buffer (or buffer (current-buffer))
+		  (save-restriction
+			(widen)
+			(if (search-backward-regexp regexp nil t 1)
 				(list (match-string 0) (line-number-at-pos)))))))))
 
 (defun testlet-list-files (regexp)
@@ -93,7 +98,7 @@
 		   test-function
 		   ")'"))))
 
-(setq watch-test-files-go-mode (lambda () (testlet-list-files ".*\\.go$")))
+(setq watch-test-files-go-mode '("go"))
 
 
 ;; elixir-mode
@@ -110,13 +115,10 @@
 				   (concat "mix test " file-name
 						   ":" (number-to-string line-number)))))
 
-;; TODO: Only search in <project>/(lib|test) otherwise there are too
-;; many files returned.
-(setq watch-test-files-elixir-mode (lambda ()
-									 (testlet-list-files ".*\\.\\(ex\\|exs\\)$")))
+(setq watch-test-files-elixir-mode '("ex" "exs"))
 
 
-(defun testlet-get-mode-func (prefix)
+(defun testlet--get-mode-var (prefix)
   (if-let* ((symbol (intern (concat prefix (symbol-name major-mode))))
 			(bound (boundp symbol))
 			(func (symbol-value symbol))
@@ -128,66 +130,54 @@
 				(symbol-name major-mode)))
 	  nil)))
 
-(defun testlet-register-file-watchers (files func)
-  (with-current-buffer "*testlet*"
-	(dolist (file files)
-	  (push (file-notify-add-watch file '(change)
-								   (lambda (event)
-									 (if (eq 'changed (nth 1 event))
-										 (funcall func))))
-			file-watchers))))
-
-(defun testlet-remove-file-watchers ()
-  (when (get-buffer "*testlet*")
-	  (with-current-buffer "*testlet*"
-		(dolist (watcher file-watchers)
-		  (file-notify-rm-watch watcher)))))
-
 (defun testlet-run-test (prefix)
   "Resolves the variable <prefix> + <major-mode-name> and runs the
 stored value as shell command in the project root."
-  (if-let* ((command-func (testlet-get-mode-func prefix))
+  (if-let* ((command-func (testlet--get-mode-var prefix))
 			(command (funcall command-func))
 			(full-command (concat "cd " (projectile-project-root) " && " command))
-			(test-func (lambda () 
-						 (async-shell-command full-command
-											  "*testlet*"
-											  "*testlet*"))))
-	  
+			(test-func (lambda ()
+						 (async-shell-command full-command "*testlet*" "*testlet*"))))
+
 	  (progn
+		(setq testlet--buffer-under-test (current-buffer))
+		(setq testlet--last-test-command test-func)
+		(setq testlet--project-root (projectile-project-root))
 		(funcall test-func)
-		(with-current-buffer "*testlet*"
-		  (testlet-mode)
-		  (setq last-test-command test-func)))
-	
+		(with-current-buffer "*testlet*" (testlet-mode)))
+
 	(message "no test found")))
 
 (defun testlet-watch-test (prefix)
-  (testlet-remove-file-watchers)
-  (testlet-run-test prefix)
-  (if-let* ((files-func (testlet-get-mode-func "watch-test-files-"))
-			(files (funcall files-func)))
-	  (testlet-register-file-watchers files 'testlet-rerun-test)))
+  (setq testlet--watching? 't)
+  (testlet-run-test prefix))
+
+(defun testlet--relevant-file? ()
+  (when-let* ((saved-file-name (buffer-file-name))
+			  (saved-extension (file-name-extension saved-file-name))
+			  (extension-list (testlet--get-mode-var "watch-test-files-")))
+	(member saved-extension extension-list)))
+
+(defun testlet--file-watch-hook ()
+  (when (and testlet--watching? (testlet--relevant-file?))
+	(testlet-rerun-test)))
 
 ;;;###autoload
 (defun testlet-run-test-project ()
   "Tests the current project."
   (interactive)
-  (testlet-remove-file-watchers)
   (testlet-run-test "run-test-project-"))
 
 ;;;###autoload
 (defun testlet-run-test-file ()
   "Runs the tests in the current file."
   (interactive)
-  (testlet-remove-file-watchers)
   (testlet-run-test "run-test-file-"))
 
 ;;;###autoload
 (defun testlet-run-test-at-point ()
   "Runs the test at point."
   (interactive)
-  (testlet-remove-file-watchers)
   (testlet-run-test "run-test-at-point-"))
 
 ;;;###autoload
@@ -211,17 +201,24 @@ stored value as shell command in the project root."
 ;;;###autoload
 (defun testlet-rerun-test ()
   (interactive)
-  (with-current-buffer "*testlet*"
-	(let ((test-func last-test-command)
-		  (watchers file-watchers))
-	  (if test-func
-		  (progn
-			(funcall test-func)
-			(testlet-mode)
-			(setq last-test-command test-func)
-			(setq file-watchers watchers))
+  (if testlet--last-test-command
+	  (progn
+		(funcall testlet--last-test-command)
+		(with-current-buffer "*testlet*" (testlet-mode)))
 
-		(message "no previous test command saved")))))
+	(message "no previous test command saved")))
+
+;;;###autoload
+(defun testlet-stop-watching ()
+  (interactive)
+  (setq testlet--watching? nil))
+
+;;;###autoload
+(defun testlet-pop-to-buffer-under-test ()
+  (interactive)
+  (if testlet--buffer-under-test
+	  (pop-to-buffer testlet--buffer-under-test)
+	(message "no test buffer saved")))
 
 (defvar-keymap testlet-mode-map
   "g" #'testlet-rerun-test
@@ -237,7 +234,8 @@ stored value as shell command in the project root."
   (defvar-local last-test-command nil)
   (defvar-local file-watchers '())
 
-  (add-hook 'kill-buffer-hook 'testlet-remove-file-watchers nil t))
+  (add-hook 'kill-buffer-hook 'testlet-stop-watching nil t)
+  (add-hook 'after-save-hook 'testlet--file-watch-hook))
 
 (provide 'testlet)
 ;;; testlet.el ends here
