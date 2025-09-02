@@ -39,6 +39,7 @@
 (defvar testlet--buffer-under-test nil)
 (defvar testlet--last-test-command nil)
 (defvar testlet--watching? nil)
+(defvar testlet--project-root nil)
 
 (defun matches-in-buffer (regexp &optional buffer)
   "Returns a list of matches in the current or given buffer."
@@ -97,7 +98,7 @@
 		   test-function
 		   ")'"))))
 
-(setq watch-test-files-go-mode (lambda () (testlet-list-files ".*\\.go$")))
+(setq watch-test-files-go-mode '("go"))
 
 
 ;; elixir-mode
@@ -114,21 +115,10 @@
 				   (concat "mix test " file-name
 						   ":" (number-to-string line-number)))))
 
-(setq watch-test-files-elixir-mode
-	  (lambda ()
-		(let* ((root (projectile-project-root))
-			   (lib-dir (concat root "lib"))
-			   (test-dir (concat root "test")))
-		  (directory-files-recursively root
-									   ".*\\.\\(ex\\|exs\\)$"
-									   nil
-									   (lambda (dir)
-										 (or
-										  (string-prefix-p lib-dir dir)
-										  (string-prefix-p test-dir dir)))))))
+(setq watch-test-files-elixir-mode '("ex" "exs"))
 
 
-(defun testlet-get-mode-func (prefix)
+(defun testlet--get-mode-var (prefix)
   (if-let* ((symbol (intern (concat prefix (symbol-name major-mode))))
 			(bound (boundp symbol))
 			(func (symbol-value symbol))
@@ -143,7 +133,7 @@
 (defun testlet-run-test (prefix)
   "Resolves the variable <prefix> + <major-mode-name> and runs the
 stored value as shell command in the project root."
-  (if-let* ((command-func (testlet-get-mode-func prefix))
+  (if-let* ((command-func (testlet--get-mode-var prefix))
 			(command (funcall command-func))
 			(full-command (concat "cd " (projectile-project-root) " && " command))
 			(test-func (lambda ()
@@ -152,6 +142,7 @@ stored value as shell command in the project root."
 	  (progn
 		(setq testlet--buffer-under-test (current-buffer))
 		(setq testlet--last-test-command test-func)
+		(setq testlet--project-root (projectile-project-root))
 		(funcall test-func)
 		(with-current-buffer "*testlet*" (testlet-mode)))
 
@@ -161,19 +152,11 @@ stored value as shell command in the project root."
   (setq testlet--watching? 't)
   (testlet-run-test prefix))
 
-
-(defun testlet--stop-watching ()
-  (setq testlet--watching? nil))
-
-(defun testlet--relevant-file? (buffer)
-  (when-let* ((saved-buffer-mode (symbol-name major-mode))
-			(saved-buffer-path (buffer-file-name))
-			(test-buffer-mode (with-current-buffer testlet--buffer-under-test
-							  (symbol-name major-mode)))
-			(watcher-func (testlet-get-mode-func "watch-test-files-")))
-
-	  (and (eq saved-buffer-mode test-buffer-mode)
-		   (funcall watcher-func saved-buffer-path))))
+(defun testlet--relevant-file? ()
+  (when-let* ((saved-file-name (buffer-file-name))
+			  (saved-extension (file-name-extension saved-file-name))
+			  (extension-list (testlet--get-mode-var "watch-test-files-")))
+	(member saved-extension extension-list)))
 
 (defun testlet--file-watch-hook ()
   (when (and testlet--watching? (testlet--relevant-file?))
@@ -225,6 +208,18 @@ stored value as shell command in the project root."
 
 	(message "no previous test command saved")))
 
+;;;###autoload
+(defun testlet-stop-watching ()
+  (interactive)
+  (setq testlet--watching? nil))
+
+;;;###autoload
+(defun testlet-pop-to-buffer-under-test ()
+  (interactive)
+  (if testlet--buffer-under-test
+	  (pop-to-buffer testlet--buffer-under-test)
+	(message "no test buffer saved")))
+
 (defvar-keymap testlet-mode-map
   "g" #'testlet-rerun-test
   "q" #'kill-current-buffer)
@@ -239,7 +234,7 @@ stored value as shell command in the project root."
   (defvar-local last-test-command nil)
   (defvar-local file-watchers '())
 
-  (add-hook 'kill-buffer-hook 'testlet--stop-watching nil t)
+  (add-hook 'kill-buffer-hook 'testlet-stop-watching nil t)
   (add-hook 'after-save-hook 'testlet--file-watch-hook))
 
 (provide 'testlet)
