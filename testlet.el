@@ -101,21 +101,21 @@
 (setq watch-test-files-go-mode '("go"))
 
 
-;; elixir-mode
+;; elixir-ts-mode
 
-(setq run-test-project-elixir-mode (lambda () "mix test"))
+(setq run-test-project-elixir-ts-mode (lambda () "mix test"))
 
-(setq run-test-file-elixir-mode
+(setq run-test-file-elixir-ts-mode
 	  (lambda () (concat "mix test " (buffer-file-name (current-buffer)))))
 
-(setq run-test-at-point-elixir-mode
+(setq run-test-at-point-elixir-ts-mode
 	  (lambda () (when-let* ((file-name (buffer-file-name (current-buffer)))
 							 (line-number
 							  (nth 1 (match-before-point "test\s\".*\".*do$"))))
 				   (concat "mix test " file-name
 						   ":" (number-to-string line-number)))))
 
-(setq watch-test-files-elixir-mode '("ex" "exs"))
+(setq watch-test-files-elixir-ts-mode '("ex" "exs"))
 
 
 (defun testlet--get-mode-var (prefix)
@@ -143,14 +143,15 @@ stored value as shell command in the project root."
 		(setq testlet--buffer-under-test (current-buffer))
 		(setq testlet--last-test-command test-func)
 		(setq testlet--project-root (projectile-project-root))
+		(testlet-stop-watching)
 		(funcall test-func)
 		(with-current-buffer "*testlet*" (testlet-mode)))
 
 	(message "no test found")))
 
 (defun testlet-watch-test (prefix)
-  (setq testlet--watching? 't)
-  (testlet-run-test prefix))
+  (testlet-run-test prefix)
+  (setq testlet--watching? 't))
 
 (defun testlet--relevant-file? ()
   (when-let* ((saved-file-name (buffer-file-name))
@@ -214,10 +215,10 @@ stored value as shell command in the project root."
   (setq testlet--watching? nil))
 
 ;;;###autoload
-(defun testlet-pop-to-buffer-under-test ()
+(defun testlet-switch-to-buffer-under-test ()
   (interactive)
   (if testlet--buffer-under-test
-	  (pop-to-buffer testlet--buffer-under-test)
+	  (switch-to-buffer testlet--buffer-under-test)
 	(message "no test buffer saved")))
 
 (defvar-keymap testlet-mode-map
